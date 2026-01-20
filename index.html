@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>n8n MCP Usage Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #feca57;
+        }
+        input::placeholder {
+            color: #666;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            border: none;
+            border-radius: 10px;
+            color: #1a1a2e;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(254, 202, 87, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .stats-container {
+            display: none;
+        }
+        .stats-container.show {
+            display: block;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .progress-fill.green { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+        .progress-fill.yellow { background: linear-gradient(90deg, #f1c40f, #f39c12); }
+        .progress-fill.red { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+        .usage-box {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .usage-title {
+            font-size: 0.85rem;
+            color: #feca57;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .usage-numbers {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .usage-current {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .usage-limit {
+            color: #666;
+            font-size: 1rem;
+        }
+        .reset-info {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .error-msg {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error-msg.show {
+            display: block;
+        }
+        .api-key-display {
+            background: rgba(0,0,0,0.3);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #feca57;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+        .timestamp {
+            text-align: center;
+            color: #666;
+            font-size: 0.8rem;
+            margin-top: 20px;
+        }
+        .no-usage {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        .no-usage-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>n8n MCP Usage Dashboard</h1>
+
+        <div class="card">
+            <div class="input-group">
+                <label>Your API Key</label>
+                <input type="password" id="apiKey" placeholder="n8n_api_xxxxxxxxxxxxxxxx">
+            </div>
+            <button id="checkBtn" onclick="checkUsage()">Check Usage</button>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <div class="stats-container" id="statsContainer">
+            <div class="card">
+                <div class="api-key-display" id="maskedKey"></div>
+
+                <div id="usageContent"></div>
+
+                <div class="timestamp" id="timestamp"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://n8n-mcp-dynamic.missmanga.org/stats';
+
+        async function checkUsage() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const btn = document.getElementById('checkBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            const statsContainer = document.getElementById('statsContainer');
+
+            if (!apiKey) {
+                showError('Please enter your API key');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+            errorMsg.classList.remove('show');
+            statsContainer.classList.remove('show');
+
+            try {
+                const response = await fetch(`${API_URL}?api_key=${encodeURIComponent(apiKey)}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                displayStats(data);
+                statsContainer.classList.add('show');
+            } catch (error) {
+                showError('Failed to connect to server. Please try again.');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Check Usage';
+            }
+        }
+
+        function showError(msg) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('show');
+        }
+
+        function displayStats(data) {
+            document.getElementById('maskedKey').textContent = data.api_key;
+
+            const content = document.getElementById('usageContent');
+
+            if (data.message === 'No usage recorded yet') {
+                content.innerHTML = `
+                    <div class="no-usage">
+                        <div class="no-usage-icon">📊</div>
+                        <p>No usage recorded yet</p>
+                        <p style="margin-top:8px;font-size:0.9rem;">Start using the MCP server to see your stats</p>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Rate Limit (per minute)</span>
+                        <span class="stat-value">${data.limits.per_minute}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Daily Limit</span>
+                        <span class="stat-value">${data.limits.per_day}</span>
+                    </div>
+                `;
+            } else {
+                const minute = data.usage.minute;
+                const daily = data.usage.daily;
+
+                content.innerHTML = `
+                    <div class="usage-box">
+                        <div class="usage-title">Per Minute</div>
+                        <div class="usage-numbers">
+                            <span class="usage-current">${minute.used}</span>
+                            <span class="usage-limit">/ ${minute.limit}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${getProgressColor(minute.used, minute.limit)}"
+                                 style="width: ${(minute.used / minute.limit) * 100}%"></div>
+                        </div>
+                        <div class="reset-info">Resets in ${minute.resets_in_seconds} seconds</div>
+                    </div>
+
+                    <div class="usage-box">
+                        <div class="usage-title">Daily</div>
+                        <div class="usage-numbers">
+                            <span class="usage-current">${daily.used}</span>
+                            <span class="usage-limit">/ ${daily.limit}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${getProgressColor(daily.used, daily.limit)}"
+                                 style="width: ${(daily.used / daily.limit) * 100}%"></div>
+                        </div>
+                        <div class="reset-info">Resets in ${daily.resets_in_hours} hours</div>
+                    </div>
+
+                    <div class="stat-row">
+                        <span class="stat-label">Remaining (minute)</span>
+                        <span class="stat-value" style="color: ${minute.remaining > 10 ? '#2ecc71' : '#e74c3c'}">${minute.remaining}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Remaining (daily)</span>
+                        <span class="stat-value" style="color: ${daily.remaining > 20 ? '#2ecc71' : '#e74c3c'}">${daily.remaining}</span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('timestamp').textContent =
+                data.timestamp ? `Last updated: ${new Date(data.timestamp).toLocaleString('th-TH')}` : '';
+        }
+
+        function getProgressColor(used, limit) {
+            const percent = (used / limit) * 100;
+            if (percent < 50) return 'green';
+            if (percent < 80) return 'yellow';
+            return 'red';
+        }
+
+        // Enter key to submit
+        document.getElementById('apiKey').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkUsage();
+        });
+    </script>
+</body>
+</html>
